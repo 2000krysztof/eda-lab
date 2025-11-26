@@ -9,6 +9,7 @@ import * as sns from "aws-cdk-lib/aws-sns";
 import * as subs from "aws-cdk-lib/aws-sns-subscriptions";
 import * as iam from "aws-cdk-lib/aws-iam";
 import * as dynamodb from "aws-cdk-lib/aws-dynamodb";
+import * as source from "aws-cdk-lib/aws-lambda-event-sources";
 
 import { Construct } from "constructs";
 // import * as sqs from 'aws-cdk-lib/aws-sqs';
@@ -55,6 +56,7 @@ export class EDAAppStack extends cdk.Stack {
 			partitionKey: { name: "name", type: dynamodb.AttributeType.STRING },
 			removalPolicy: cdk.RemovalPolicy.DESTROY,
 			tableName: "Imagess",
+			stream: dynamodb.StreamViewType.NEW_IMAGE
 		});
 
 		// Lambda functions
@@ -124,6 +126,12 @@ export class EDAAppStack extends cdk.Stack {
 				},
 			})
 		);
+
+		mailerFn.addEventSource(
+			new source.DynamoEventSource(imagesTable, {
+				startingPosition: lambda.StartingPosition.LATEST
+			})
+		)
 		// SQS --> Lambda
 		newImageTopic.addSubscription(
 			new subs.SqsSubscription(imageProcessQueue, {
